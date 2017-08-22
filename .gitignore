@@ -1,0 +1,6 @@
+*.csv
+*.pyc
+*.bak
+*.txt
+*.out
+*.log
