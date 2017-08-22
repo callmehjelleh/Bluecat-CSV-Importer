@@ -93,8 +93,8 @@ class App:
         return str_val.strip()
 
     # <summary>
-    # <todo priority="high">
-    # Merge IPs before creating the device
+    # Populates the devices table from the csv
+    # </summary>
     def populateDevices(self):
         self.devices = []
         for row in self.csv.getRows():
@@ -266,8 +266,8 @@ if __name__ == "__main__":
     parser.add_argument("-u", "--username", default=None, action="store", dest="username", help="The username to use for authentication")
     parser.add_argument("-p", "--password", default=None, action="store", dest="password", help="The password to use for authentication")
     parser.add_argument("-c", "--configuration", default=None, action="store", dest="configuration", help="The BAMClient configuration to use")
-    parser.add_argument("--export", default=False, action="store_true", dest="export", help="Export data from the server rather than import")
-    parser.add_argument("-n", "--network", default=False, action="store_true", dest="network_mode", help="Controls whether the program will use network mode to import and tag whole networks")
+    #parser.add_argument("--export", default=False, action="store_true", dest="export", help="Export data from the server rather than import")
+    #parser.add_argument("-n", "--network", default=False, action="store_true", dest="network_mode", help="Controls whether the program will use network mode to import and tag whole networks")
     args = parser.parse_args()
 
     app = App(filename=args.filename, 

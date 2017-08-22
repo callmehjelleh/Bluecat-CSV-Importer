@@ -48,6 +48,12 @@ class CSVReader:
         except:
             self.callback('No field called %s' % name, False)
 
+    # <summary>
+    # Similar to getColumn, but takes a list of names and returns a dict of columns
+    # </summary>
+    # <param name="names" type="list">
+    # The list of names to retrieve from the CSV
+    # </param>
     def getColumns(self, names):
         try:
             cols = {}
@@ -76,9 +82,25 @@ class CSVReader:
             self.callback("%d" % self.reader.index, False)
             self.callback("Could not set value in DataFrame: %s" % e, False)
 
-    def removeRow(self, indexes):
+    # <summary>
+    # Removes rows from the DataFrame structure
+    # </summary>
+    # <param name="indexes" type="list">
+    # The list of row indexes to remove from the DataFrame
+    # </param>
+    def removeRows(self, indexes):
         self.reader = self.reader.drop(indexes)
 
+    # <summary>
+    # The default callback (in case one isnt provided.)
+    # This really should not be necessary
+    # </summary>
+    # <param name="msg" type="string">
+    # The error message
+    # </param>
+    # <param name="fail" type="boolean">
+    # Did the program fail? controls whether to exit after the callback
+    # </param>
     @staticmethod
     def defaultCallback(msg, fail):
         print msg

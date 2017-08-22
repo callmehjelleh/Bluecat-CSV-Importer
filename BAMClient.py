@@ -127,6 +127,9 @@ class BAMClient:
                 return [device["id"], name.strip()]
             self.callback("Error adding device type %s" % name.strip(), False)
 
+    # <summary>
+    # Gets a list of device types on the BAM service
+    # </summary>
     def getDeviceTypes(self):
         return self.client.getEntities(0, "DeviceType", 0, 5000)
 
@@ -135,9 +138,11 @@ class BAMClient:
     # </summary>
     # <param name="device" type="Device">
     # The device to add to the BAM service
+    # </param name="device" type="Device">
+    # The device object to add to the server
     # </param>
     def addDevice(self, device):
-        device_entity = self.getDevice(device)
+        device_entity = self.getDevice(device.name())
         if not device_entity['id'] == 0:
             logging.warning("Device {0} already exists with ID {1}. Skipping...".format(device.name(), device_entity['id']))
             return device_entity
@@ -155,11 +160,26 @@ class BAMClient:
         except Exception, e:
             self.callback("Error creating device: {}".format(e), False)
 
+    # <summary>
+    # Returns a device with the provided device object's name if one exists on the BAM service
+    # </summary>
+    # <param name="device" type="string">
+    # The device name to query the server for
+    # </param>
     def getDevice(self, device):
         return self.client.getEntityByName(self.configuration_id, device.name(), "Device")
+    
     # <summary>
-    # Creates a new network entity to the block with the same CIDR on the BAM service.
+    # Creates a new network entity and adds it to the network block with the same CIDR
+    # Currently creates only networks with the CIDR /24 of the IP
     # If the specified block does not exist, a new one is created 
+    # </summary>
+    # <param name="IP" type="string">
+    # An IP contained in the network
+    # </param>
+    # <todo priority="moderate">
+    # Allow creation of networks with different CIDR notations.
+    # </todo>
     def addNetwork(self, IP):
         network_entity = self.getNetwork(IP)
         if not network_entity['id'] == 0:
@@ -175,12 +195,28 @@ class BAMClient:
         logging.debug("Adding a new network for CIDR {0}".format(CIDR))
         return self.client.addIP4Network(block_id, CIDR, None)        
 
+    # <summary>
+    # Queries the server for a Network based on an IP contained within it
+    # </summary>
+    # <param name="IP" type="string">
+    # The IP contained within the network to query for
+    # </param>
     def getNetwork(self, IP):
         network_entity = self.client.getIPRangedByIP(self.configuration_id, "IP4Network", IP)
         if network_entity['id'] == 0:
             logging.debug('No network entity found for CIDR {0}'.format(IP))
         return network_entity
 
+    # <summary>
+    # Adds a new network block entity, if one does not already exist
+    # Currently only creates blocks with the CIDR /24 of the IP provided
+    # </summary>
+    # <param name="IP" type="string">
+    # The IP contained within the block to create
+    # </param>
+    # <todo priority="moderate">
+    # Allow creation of blocks by CIDR notation (not just /24)
+    # </todo>
     def addBlock(self, IP):
         block_entity = self.getBlock(IP)
         if not block_entity['id'] == 0:
@@ -189,6 +225,12 @@ class BAMClient:
         CIDR = IP.rsplit('.', 1)[0] + '.0/24'
         return self.client.addIP4BlockByCIDR(self.configuration_id, CIDR, None)
 
+    # <summary>
+    # Queries the server for a network block based on an IP contained within it
+    # </summary>
+    # <param name="IP" type="string">
+    # The IP contained within the block to check for
+    # </param>
     def getBlock(self, IP):
         return self.client.getIPRangedByIP(self.configuration_id, "IP4Block", IP)
 

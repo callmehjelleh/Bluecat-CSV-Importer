@@ -9,14 +9,17 @@ python __main__.py
 
 ## Easily import CSV's to Bluecat Address Manager
 
-Proteus allows users to simplify the task of importing data into Bluecat Address Manager by simply providing a CSV to the module, and letting it do the heavy lifting!
+Bluecat-CSV-Importer allows users to simplify the task of importing data into Bluecat Address Manager by simply providing a CSV to the module, and letting it do the heavy lifting!
 
+## Notes
+
+- This design is very much so overbuilt. However, going forward, I hope this makes adding new features much easier. If not, well, it was something to do ¯\\_\(ツ\)\_\/¯
 
 ## Code Standards
 
 ### IF YOU INTEND TO WORK ON THIS PLEASE READ
 
-Proteus pull requests will be denied if code standards are not met. Here we'll discuss the important parts of these code standards.
+Pull requests will be denied if code standards are not met. Here we'll discuss the important parts of these code standards.
 
 ### Classes 
 
