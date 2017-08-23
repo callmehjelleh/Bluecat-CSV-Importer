@@ -38,6 +38,7 @@ class BAMClient:
     # </param>
     def __init__(self, address, user, password, callback=None):
         self.callback = callback
+        self.logger = logging.getLogger(__name__)
 
         try:
             if AddressValidator.validate(address):
@@ -102,7 +103,7 @@ class BAMClient:
         except:
             device = self.client.getEntityByName(0, name.strip(), "DeviceType")
             if device:
-                logging.debug("Server says: Device type {0} already exists with ID {1}".format(name.strip(), device["id"]))
+                self.logger.debug("Server says: Device type {0} already exists with ID {1}".format(name.strip(), device["id"]))
                 return [device["id"], name.strip()]
             self.callback("Error adding device type %s" % name, False)
 
@@ -123,7 +124,7 @@ class BAMClient:
         except:
             device = self.client.getEntityByName(device_id, name.strip(), "DeviceSubtype")
             if device:
-                logging.debug("Device subtype {0} already exists with ID {1} and parent ID {2}".format(name.strip(), device["id"], device_id))
+                self.logger.debug("Device subtype {0} already exists with ID {1} and parent ID {2}".format(name.strip(), device["id"], device_id))
                 return [device["id"], name.strip()]
             self.callback("Error adding device type %s" % name.strip(), False)
 
@@ -144,7 +145,7 @@ class BAMClient:
     def addDevice(self, device):
         device_entity = self.getDevice(device.name())
         if not device_entity['id'] == 0:
-            logging.warning("Device {0} already exists with ID {1}. Skipping...".format(device.name(), device_entity['id']))
+            self.logger.warning("Device {0} already exists with ID {1}. Skipping...".format(device.name(), device_entity['id']))
             return device_entity
         try:
             print device.name()
@@ -163,11 +164,11 @@ class BAMClient:
     # <summary>
     # Returns a device with the provided device object's name if one exists on the BAM service
     # </summary>
-    # <param name="device" type="string">
+    # <param name="name" type="string">
     # The device name to query the server for
     # </param>
-    def getDevice(self, device):
-        return self.client.getEntityByName(self.configuration_id, device.name(), "Device")
+    def getDevice(self, name):
+        return self.client.getEntityByName(self.configuration_id, name, "Device")
     
     # <summary>
     # Creates a new network entity and adds it to the network block with the same CIDR
@@ -183,16 +184,16 @@ class BAMClient:
     def addNetwork(self, IP):
         network_entity = self.getNetwork(IP)
         if not network_entity['id'] == 0:
-            logging.debug("Network for IP {0} already exists with ID {1}".format(IP, network_entity['id']))
+            self.logger.debug("Network for IP {0} already exists with ID {1}".format(IP, network_entity['id']))
             return network_entity
         
         block_id = self.getBlock(IP)['id']
         if block_id == 0:
-            logging.debug("No block entity found for IP {0}. Creating it now.".format(IP))
+            self.logger.debug("No block entity found for IP {0}. Creating it now.".format(IP))
             block_id = self.addBlock(IP)
 
         CIDR = IP.rsplit('.', 1)[0] + '.0/24'
-        logging.debug("Adding a new network for CIDR {0}".format(CIDR))
+        self.logger.debug("Adding a new network for CIDR {0}".format(CIDR))
         return self.client.addIP4Network(block_id, CIDR, None)        
 
     # <summary>
@@ -204,7 +205,7 @@ class BAMClient:
     def getNetwork(self, IP):
         network_entity = self.client.getIPRangedByIP(self.configuration_id, "IP4Network", IP)
         if network_entity['id'] == 0:
-            logging.debug('No network entity found for CIDR {0}'.format(IP))
+            self.logger.debug('No network entity found for CIDR {0}'.format(IP))
         return network_entity
 
     # <summary>
