@@ -20,6 +20,9 @@ class DeviceType:
     # <param name="children" type="dict">
     # Optional, allows passing of a pre-created dict of DeviceSubtype objects to be passed in
     # </param>
+    # <todo priority="high">
+    # Escape name to avoid potential errors with certain special chars
+    # </todo>
     def __init__(self, name, device_id, children=None):
         self.__name = name
         self.__device_id = device_id

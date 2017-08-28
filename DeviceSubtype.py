@@ -1,6 +1,9 @@
 # <summary>
 # BAM device subtype instance. Contains only basic info right now, that could change down the road however
 # </summary>
+# <todo priority="high">
+# Escape name to avoid potential errors with certain special chars
+# </todo>
 class DeviceSubtype:
     def __init__(self, name, device_id):
         self.__name = name

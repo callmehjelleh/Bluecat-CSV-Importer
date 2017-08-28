@@ -1,7 +1,7 @@
 from DeviceType import DeviceType
 from DeviceSubtype import DeviceSubtype
 from AddressValidator import AddressValidator
-
+from Address import Address
 # <summary>
 # Class which stores information about a device on the BAM service
 # </summary>
@@ -12,8 +12,8 @@ class Device:
 	# <param name="name" type="string">
 	# The name of the device
 	# </param>
-	# <param name="addresses" type="string">
-	# The addresses associated with the Device
+	# <param name="addresses" type="list">
+	# The list of Address objects associated with the Device
 	# </param>
 	# <param name="device_type" type="DeviceType">
 	# The device's type
@@ -29,10 +29,10 @@ class Device:
 		self.__name = name
 
 		# UNTESTED
-		for address in addresses.split(','):
-			if not AddressValidator.validate(address):
+		for address in addresses:
+			if not isinstance(address, Address):
 				self.error_callback("Address {} associated with Device is not a valid IP".format(address), False)
-				addresses.replace(address, '')
+				del addresses[addresses.index(address)]
 
 
 		self.__addresses = addresses
@@ -71,7 +71,7 @@ class Device:
 	# Accessor for device addresses
 	# </summary>
 	def addresses(self):
-		return self.__addresses.split(',')
+		return self.__addresses
 
 	# <summary>
 	# Appends the provided address to the currently held addresses
@@ -83,4 +83,5 @@ class Device:
 	# Pass lists of IP's instead to allow batch merging
 	# </todo>
 	def mergeAddresses(self, address):
-		self.__addresses += ',' + address.strip()
+		if isinstance(address, Address):
+			self.__addresses.append(address)

@@ -10,7 +10,7 @@ from Device import Device
 import getpass
 import logging
 
-logging.basicConfig(format="%(levelname)s:%(msg)s")
+logging.basicConfig()
 
 # <summary>
 # Main module of the program. also provides a debugging interface.
@@ -103,12 +103,14 @@ class App:
             # TODO: There's definetly a better way to do this. Revisit this at some point
             for device in self.devices:
                 if self.formatCell(row['Name']) == device.name():
-                    device.mergeAddresses(row['IP'])
+                    row['IP'] = self.formatCell(row['IP'])
+                    device.mergeAddresses(Address(row['IP'], row['IP'].rsplit('.', 1)[0] + '.0/24', self.errorCallback))
                     present = True
                     break
             if not present:
+                from Address import Address
                 self.devices.append(Device(name=self.formatCell(row['Name']), 
-                                           addresses=self.formatCell(row['IP']), 
+                                           addresses=[Address(i, i.rsplit('.', 1)[0] + '.0/24', self.errorCallback) for i in self.formatCell(row['IP']).split(',')], 
                                            device_type=self.id_list[self.formatCell(row['Device Type'])], 
                                            device_subtype=self.id_list[self.formatCell(row['Device Type'])].subtypes()[self.formatCell(row['Device Subtype'])],
                                            error_callback=self.errorCallback))             

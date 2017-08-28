@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from CSVReader import CSVReader
-from AddressValidator import AddressValidator
+from Address import Address
 from suds.client import Client
 import logging
 import coloredlogs
@@ -41,7 +41,7 @@ class BAMClient:
         self.logger = logging.getLogger(__name__)
 
         try:
-            if AddressValidator.validate(address):
+            if Address.validate(address):
                 self.client = Client(url="http://" + address + "/Services/API?wsdl", faults=True).service
                 self.client.login(user, password)
             else:
@@ -148,15 +148,15 @@ class BAMClient:
             self.logger.warning("Device {0} already exists with ID {1}. Skipping...".format(device.name(), device_entity['id']))
             return device_entity
         try:
-            print device.name()
-            for IP in device.addresses():
-                self.addNetwork(IP)
-                
+            for address in device.addresses():
+                self.addNetwork(address.IP())
+            
+
             self.client.addDevice(self.configuration_id,
                                   device.name(), 
                                   device.device_type().id(), 
                                   device.device_subtype().id(), 
-                                  ','.join(device.addresses()),
+                                  ','.join([i.IP() for i in device.addresses()]),
                                   None, None)    
         except Exception, e:
             self.callback("Error creating device: {}".format(e), False)
@@ -235,12 +235,15 @@ class BAMClient:
     def getBlock(self, IP):
         return self.client.getIPRangedByIP(self.configuration_id, "IP4Block", IP)
 
+    #def addTag(self, name):
+
+    #def tagBlock(self, block_id):
 # TODO: replace with unit testing
 if __name__ == "__main__":
     def callback(msg, fail):
         print msg
 
-    csv = CSVReader('testdevice.csv', callback)
+    csv = CSVReader('test.csv', callback)
     bam = BAM(BAM.default_address, BAM.default_user, BAM.default_password)
 
     bam._BAM__merge_IP(csv)

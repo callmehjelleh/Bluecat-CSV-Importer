@@ -16,19 +16,38 @@ class Address:
     # <param name="error_callback" type="function">
     # The callback function in the event of errors
     # </param>
-    def __init__(self, address, subnet, error_callback, FQDN=None):
-        self.__error_callback = error_callback
+    def __init__(self, IP, subnet, error_callback, FQDN=None):
+        self.error_callback = error_callback
 
-        if not isValidSubnet(subnet):
-            self.error_callback("Subnet '{}' is not valid! Could not create Address object")
+        if not Address.isValidSubnet(subnet):
+            self.error_callback("Subnet '{}' is not valid! Could not create Address object".format(subnet), False)
         self.__subnet = subnet
-        if not Address.isValidIPv4(address) or not Address.isMemberOfSubnet(address, self.__subnet):
-            self.error_callback("IP '{}' is not valid! Could not create Address object".format(address), False)
-        self.__address = address
-        if not FQDN or not Address.isValidFQDN(FQDN):
-            self.error_callback("FQDN '{}' is not valid! Could not create Address object".format(FQDN), False)
+
+        if not Address.isValidIPv4(IP) or not Address.isMemberOfSubnet(IP, self.__subnet):
+            self.error_callback("IP '{}' is not valid! Could not create Address object.".format(IP), False)
+        self.__IP = IP
+
+        if FQDN and not Address.isValidFQDN(FQDN):
+            self.error_callback("FQDN {} is not valid! Could not create Address object".format(IP), False)
         self.__FQDN = FQDN
 
+    # <summary>
+    # Accessor for IP
+    # </summary>
+    def IP(self):
+        return self.__IP
+
+    # <summary>
+    # Accessor for subnet
+    # </summary>
+    def subnet(self):
+        return self.__subnet
+
+    # <summary>
+    # accessor for FQDN
+    # </summary>
+    def FQDN(self):
+        return self.__FQDN
 
     # <summary>
     # Verifies the address provided is in fact a valid ipv4 or fqdn
@@ -38,7 +57,7 @@ class Address:
     # </param>
     @staticmethod
     def validate(address):
-        return (AddressValidator.isValidIPv4(address) or AddressValidator.isValidFQDN(address))
+        return (Address.isValidIPv4(address) or Address.isValidFQDN(address))
 
     # <summary>
     # Verifies that the provided string is a valid IPV4 address.
@@ -50,16 +69,10 @@ class Address:
     @staticmethod
     def isValidIPv4(address):
         try:
-            socket.inet_pton(socket.AF_INET, address) # Verify ipv4 using pton
-        except AttributeError:  # no inet_pton here, sorry
-            try:
-                socket.inet_aton(address) # verify using aton
-            except socket.error:
-                return False
-            return address.count('.') == 3 # Are there 3 '.' chars? (x.x.x.x)
-        except socket.error:  # not a valid address
+            ip_address(unicode(address))
+            return True
+        except Exception, e:
             return False
-        return True
 
     # <summary>
     # Verifies that the provided FQDN is valid
@@ -75,12 +88,12 @@ class Address:
 
     @staticmethod
     def isMemberOfSubnet(address, subnet):
-        return ipaddress.ip_address(address) in ipaddress.ip_network(subnet)
+        return ip_address(unicode(address)) in ip_network(unicode(subnet))
 
     @staticmethod 
     def isValidSubnet(subnet):
         subnet_split = subnet.split('/')
-        return (Address.isValidIPv4(subnet_split[0]) or int(subnet_split) > 32)
+        return (Address.isValidIPv4(subnet_split[0]) or int(subnet_split[1]) > 32)
 
 if __name__ == "__main__":
     print "This module can not be run as a standalone program. Please run Proteus.App instead."
