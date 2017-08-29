@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from Address import Address
 from argparse import ArgumentParser
 from BAMClient import BAMClient
 #from ColoredLogger import ColoredLogger
@@ -33,7 +34,7 @@ class App:
         self.logger = logging.getLogger(__name__)
         self.id_list = {}
         self.address = address
-        self.user = username
+        self.username = username
         self.password = password
         self.configuration = configuration
         self.filename = filename
@@ -53,8 +54,8 @@ class App:
         if not self.user_input:
             if not self.address:
                 self.address = BAMClient.default_address
-            if not self.user:
-                self.user = BAMClient.default_user
+            if not self.username:
+                self.username = BAMClient.default_user
             if not self.password: 
                 self.password = BAMClient.default_password
         else:
@@ -75,8 +76,8 @@ class App:
 
         # TODO: This section is ridiculously messy. Clean this up ASAP
         self.csv = CSVReader(self.filename, self.errorCallback)
-        self.populateDeviceTypes()
-        self.populateDevices()
+        self.id_list = self.populateDeviceTypes(self.csv)
+        self.devices = self.populateDevices(self.csv)
         for i in self.devices:
             self.bam_client.addDevice(i)
         self.dumpMemory()
@@ -95,25 +96,29 @@ class App:
     # <summary>
     # Populates the devices table from the csv
     # </summary>
-    def populateDevices(self):
-        self.devices = []
-        for row in self.csv.getRows():
-            row = row[1] # We need the Series object
+    # <param name="csv" type="CSVReader">
+    # The csv reader instance to read from
+    # </param>
+    def populateDevices(self, csv):
+        devices = []
+        for row in csv.getRows():
+            row = row[1] # We need the Series object, row itself is actually a Tuple containing an index and a Series
             present = False
             # TODO: There's definetly a better way to do this. Revisit this at some point
-            for device in self.devices:
+            for device in devices:
                 if self.formatCell(row['Name']) == device.name():
                     row['IP'] = self.formatCell(row['IP'])
                     device.mergeAddresses(Address(row['IP'], row['IP'].rsplit('.', 1)[0] + '.0/24', self.errorCallback))
                     present = True
                     break
             if not present:
-                from Address import Address
-                self.devices.append(Device(name=self.formatCell(row['Name']), 
-                                           addresses=[Address(i, i.rsplit('.', 1)[0] + '.0/24', self.errorCallback) for i in self.formatCell(row['IP']).split(',')], 
-                                           device_type=self.id_list[self.formatCell(row['Device Type'])], 
-                                           device_subtype=self.id_list[self.formatCell(row['Device Type'])].subtypes()[self.formatCell(row['Device Subtype'])],
-                                           error_callback=self.errorCallback))             
+                devices.append(Device(name=self.formatCell(row['Name']), 
+                                      addresses=[Address(i, i.rsplit('.', 1)[0] + '.0/24', self.errorCallback) for i in self.formatCell(row['IP']).split(',')], 
+                                      device_type=self.id_list[self.formatCell(row['Device Type'])], 
+                                      device_subtype=self.id_list[self.formatCell(row['Device Type'])].subtypes()[self.formatCell(row['Device Subtype'])],
+                                      error_callback=self.errorCallback))
+        return devices
+
     # <summary>
     # Adds devices to the BAM Service from the csv
     # Populates id_list with Device objects, along with their child subtypes
@@ -121,10 +126,11 @@ class App:
     # <param name="csv" type="CSVReader">
     # CSVReader instance with open csv containing values to add to the BAM Service
     # </param>
-    def populateDeviceTypes(self):
-        cols = self.csv.getColumns(['Device Type', 'Device Subtype'])
+    def populateDeviceTypes(self, csv):
+        cols = csv.getColumns(['Device Type', 'Device Subtype'])
         device_column = cols['Device Type']
         subdevice_column = cols['Device Subtype']
+        id_list = {}
         # Loop through the amount of device types found in csv (note: can't have subtype without parent type)
         for idx in range(len(device_column)):
 
@@ -133,12 +139,12 @@ class App:
 
             try:
                 # attempt to access the dict key for the current device type
-                dev_obj = self.id_list[device_column[idx]]
+                dev_obj = id_list[device_column[idx]]
                 dev = [dev_obj.id(), dev_obj.name()]
                 self.logger.debug("Device type \'{0}\' already present in id list with ID {1}".format(dev[1], dev[0]))
             except KeyError: # Device type doesn't exist yet!
                 dev = self.bam_client.addDeviceType(device_column[idx])
-                self.id_list[dev[1]] = DeviceType(dev[1], dev[0])
+                id_list[dev[1]] = DeviceType(dev[1], dev[0])
                 self.logger.debug("Device type \'{0}\' has been added with ID {1}".format(dev[1], dev[0]))
             except Exception,e: # Something bad happened...
                 self.errorCallback("Device type \'{0}\' failed to be added: {1}".format(device_column[idx], e), True)
@@ -150,18 +156,19 @@ class App:
                 # attempt to access the dict key for the current device subtype
                 # Accessing this looks kinda messy so lets break it down.
                 # dev[1] is the name of the current device, which we got just above
-                # self.id_list[dev[1]] gets you the current device type in the dict
+                # id_list[dev[1]] gets you the current device type in the dict
                 # With that in mind calling subtypes() on a DeviceType instance provides the list of subtypes of that device type currently available
                 # [subdevice[idx]] is the current index in the table/csv, so we're trying to access a dict key with that name. If it fails we know its not there yet
-                subdev_obj = self.id_list[dev[1]].subtypes()[subdevice_column[idx]]
+                subdev_obj = id_list[dev[1]].subtypes()[subdevice_column[idx]]
                 subdev = [subdev_obj.id(), subdev_obj.name()]
                 self.logger.debug("Device subtype \'{0}\' already present in id list with ID {1}".format(subdev[1], subdev[0]))
             except KeyError:
                 subdev = self.bam_client.addDeviceSubtype(dev[0], subdevice_column[idx])
-                self.id_list[dev[1]].add(DeviceSubtype(subdev[1], subdev[0]))
-                self.logger.debug("Device subtype \'{0}\' has been added to \'{1}\' with ID {2}".format(subdev[1], self.id_list[dev[1]], subdev[0]))
+                id_list[dev[1]].add(DeviceSubtype(subdev[1], subdev[0]))
+                self.logger.debug("Device subtype \'{0}\' has been added to \'{1}\' with ID {2}".format(subdev[1], id_list[dev[1]], subdev[0]))
             except Exception,e:
-                self.errorCallback("Device subtype \'{0}\' failed to be added to \'{1}\': {2}".format(subdevice_column[idx], self.id_list[dev[1]], e), True)
+                self.errorCallback("Device subtype \'{0}\' failed to be added to \'{1}\': {2}".format(subdevice_column[idx], id_list[dev[1]], e), True)
+        return id_list
 
     # <summary>
     # Handles error messages sent by other classes like the BAMClient class
@@ -233,6 +240,49 @@ class App:
         self.logger.debug("End memory dump")
         self.logger.debug("---------------")
 
+# <summary>
+# Unit tests go here
+# </summary>
+# <todo priority="high">
+# Implement unit testing and fuzzing
+# </todo>
+def tests():
+    csv_path = "./test.csv"
+    app = App(filename=csv_path,
+              verbose=False,
+              user_input=False,
+              address="10.255.255.50",
+              username="eriktest",
+              password="C0k3z3r0!",
+              configuration="Test",
+              upload=False)
+    app.bam_client = BAMClient(app.address, app.username, app.password, app.errorCallback)
+    csv = CSVReader(csv_path, app.errorCallback)
+
+    # Completely pointless test....
+    assert(isinstance(app, App))
+
+    # Verify that formatCell works as intended
+    assert(app.formatCell(" Words go here ") == "Words go here")
+
+    assert(app.formatCell(float('nan')) == "Not Listed")
+    assert(app.formatCell(None) == "Not Listed")
+
+    # Test out populating device types. Verify no type confusion occurs, etc.
+    device_types = app.populateDeviceTypes(csv)
+
+    app.id_list = device_types
+
+    # Test out populating devices. Verify no type confusion occurs, etc.
+    devices = app.populateDevices(csv)
+    assert(isinstance(devices, list))
+    for i in devices:
+        assert(isinstance(i, Device))
+
+    print "Tests Succeeded!"
+
+
+
 if __name__ == "__main__":
     # Argument list
     # <param name="verbose" type="boolean" default="False">
@@ -269,8 +319,13 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--password", default=None, action="store", dest="password", help="The password to use for authentication")
     parser.add_argument("-c", "--configuration", default=None, action="store", dest="configuration", help="The BAMClient configuration to use")
     parser.add_argument("--export", default=False, action="store_true", dest="export", help="Export data from the server rather than import")
+    parser.add_argument("-t", "--testing", default=False, action="store_true", dest="test", help="Enables unit testing mode")
     #parser.add_argument("-n", "--network", default=False, action="store_true", dest="network_mode", help="Controls whether the program will use network mode to import and tag whole networks")
     args = parser.parse_args()
+
+    if args.test == True:
+        tests()
+        exit(0)
 
     app = App(filename=args.filename, 
               verbose=args.verbose,

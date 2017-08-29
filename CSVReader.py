@@ -62,6 +62,7 @@ class CSVReader:
             return cols
         except:
             self.callback('No field called %s' % name, False)
+
     # <summary>
     # Allows modification of data in the DataFrame structure created by the pandas module (in memory csv basically)
     # </summary>
@@ -74,6 +75,9 @@ class CSVReader:
     # <param name="value" type="string">
     # Value to which the value at [column_name, index] should be set
     # </param>
+    # <todo priority="low">
+    # Either use this or remove it. It was from an old design choice and is currently unused.
+    # </todo>
     def modifyValue(self, column_name, index, value):
         try:
             self.reader.set_value(index, column_name, value)
@@ -88,6 +92,9 @@ class CSVReader:
     # <param name="indexes" type="list">
     # The list of row indexes to remove from the DataFrame
     # </param>
+    # <todo priority="low">
+    # Either use this or remove it. It was from an old design choice and is currently unused.
+    # </todo>
     def removeRows(self, indexes):
         self.reader = self.reader.drop(indexes)
 
