@@ -1,6 +1,5 @@
 from DeviceType import DeviceType
 from DeviceSubtype import DeviceSubtype
-from AddressValidator import AddressValidator
 from Address import Address
 # <summary>
 # Class which stores information about a device on the BAM service
@@ -85,3 +84,8 @@ class Device:
 	def mergeAddresses(self, address):
 		if isinstance(address, Address):
 			self.__addresses.append(address)
+			return True
+		return False
+
+if __name__ == "__main__":
+	print "This module cannot be run as a standalone program. Please run __main__.py"

@@ -6,8 +6,11 @@ import pandas as pd
 # <todo priority="high">
 # Add write abilities
 # </todo>
-# <todo priority="low"
+# <todo priority="low">
 # Rename it to CSV_IO or something logical for read/write. Or Create a CSVWriter class
+# </todo>
+# <todo priority="moderate">
+# Migrate App.formatCell() to this class. It doesn't make sense for it to be there
 # </todo>
 class CSVReader:
 
@@ -26,7 +29,7 @@ class CSVReader:
         if callback:
             self.callback = callback
         else:
-            self.callback = self.default_callback
+            self.callback = CSVReader.defaultCallback
 
     # <summary>
     # returns a list of pandas.core.series.Series instances, for each row
@@ -40,8 +43,6 @@ class CSVReader:
     # <param name="name" type="string">
     # The name of the column to grab
     # </param>
-    # TODO: Convert name to 'names' and list format to allow multiple cols at a time.
-    # TODO: Find out how to use strings as indexes. e.g. getColumns(['Name', 'IP Address'])['IP Address'] = ['192.168.0.1', ...]
     def getColumn(self, name):
         try:
             return [i[1][name] for i in self.getRows()]
@@ -114,11 +115,9 @@ class CSVReader:
         if fail:
             exit(-1)
 
-if __name__ == '__main__':
-    csv = CSVReader('testdevice.csv')
 
-    assert(csv.getColumns('Not existing') == None)
-    assert(csv.getColumns('Name'))
-    assert(type(csv.getColumns('Name')) == dict)
-    assert(type(csv.getRows()) == list)
-    assert(type(csv.getRows()[1]) == pandas.series.Series)
+
+if __name__ == '__main__':
+    print "This module cannot be run as a standalone program. Please run __main__.py"
+
+    

@@ -65,4 +65,11 @@ class DeviceType:
     # </summary>
     def name(self):
         return self.__name
-        
+
+def tests():
+    print "+-----------------------------+"
+    print "|      Device Type Tests      |"
+    print "+-----------------------------+"
+
+if __name__ == "__main__":
+    print "This module cannot be run as a standalone program. Please run __main__.py"

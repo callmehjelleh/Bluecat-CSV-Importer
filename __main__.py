@@ -55,15 +55,15 @@ class App:
             if not self.address:
                 self.address = BAMClient.default_address
             if not self.username:
-                self.username = BAMClient.default_user
+                self.username = BAMClient.default_username
             if not self.password: 
                 self.password = BAMClient.default_password
         else:
             self.address = raw_input("IP Address: ")
-            self.user = raw_input("Username: ")
+            self.username = raw_input("Username: ")
             self.password = getpass.getpass("Password: ")
 
-        self.bam_client = BAMClient(self.address, self.user, self.password, self.errorCallback)
+        self.bam_client = BAMClient(self.address, self.username, self.password, self.errorCallback)
 
         if self.user_input and not self.configuration:
                 user_config = raw_input("Active configuration to use on BAMClient server: ")
@@ -77,7 +77,7 @@ class App:
         # TODO: This section is ridiculously messy. Clean this up ASAP
         self.csv = CSVReader(self.filename, self.errorCallback)
         self.id_list = self.populateDeviceTypes(self.csv)
-        self.devices = self.populateDevices(self.csv)
+        self.devices, error = self.populateDevices(self.csv)
         for i in self.devices:
             self.bam_client.addDevice(i)
         self.dumpMemory()
@@ -101,23 +101,33 @@ class App:
     # </param>
     def populateDevices(self, csv):
         devices = []
-        for row in csv.getRows():
-            row = row[1] # We need the Series object, row itself is actually a Tuple containing an index and a Series
+        error = []
+        rows = csv.getRows()
+        for idx in range(len(rows)):
+            row = rows[idx][1] # We need the Series object, row itself is actually a Tuple containing an index and a Series
+
+            row['IP'] = self.formatCell(row['IP'])
+            row['Name'] = self.formatCell(row['Name'])
+            row['Device Type'] = self.formatCell(row['Device Type'])
+            row['Device Subtype'] = self.formatCell(row['Device Subtype'])
+
             present = False
             # TODO: There's definetly a better way to do this. Revisit this at some point
             for device in devices:
                 if self.formatCell(row['Name']) == device.name():
-                    row['IP'] = self.formatCell(row['IP'])
                     device.mergeAddresses(Address(row['IP'], row['IP'].rsplit('.', 1)[0] + '.0/24', self.errorCallback))
                     present = True
                     break
             if not present:
-                devices.append(Device(name=self.formatCell(row['Name']), 
-                                      addresses=[Address(i, i.rsplit('.', 1)[0] + '.0/24', self.errorCallback) for i in self.formatCell(row['IP']).split(',')], 
-                                      device_type=self.id_list[self.formatCell(row['Device Type'])], 
-                                      device_subtype=self.id_list[self.formatCell(row['Device Type'])].subtypes()[self.formatCell(row['Device Subtype'])],
-                                      error_callback=self.errorCallback))
-        return devices
+                try:
+                    devices.append(Device(name=self.formatCell(row['Name']), 
+                                          addresses=[Address(i, i.rsplit('.', 1)[0] + '.0/24', self.errorCallback) for i in row['IP'].split(',')], 
+                                          device_type=self.id_list[row['Device Type']], 
+                                          device_subtype=self.id_list[row['Device Type']].subtypes()[row['Device Subtype']],
+                                          error_callback=self.errorCallback))
+                except ValueError:
+                    error.append([row, idx])
+        return [devices, error]
 
     # <summary>
     # Adds devices to the BAM Service from the csv
@@ -240,49 +250,6 @@ class App:
         self.logger.debug("End memory dump")
         self.logger.debug("---------------")
 
-# <summary>
-# Unit tests go here
-# </summary>
-# <todo priority="high">
-# Implement unit testing and fuzzing
-# </todo>
-def tests():
-    csv_path = "./test.csv"
-    app = App(filename=csv_path,
-              verbose=False,
-              user_input=False,
-              address="10.255.255.50",
-              username="eriktest",
-              password="C0k3z3r0!",
-              configuration="Test",
-              upload=False)
-    app.bam_client = BAMClient(app.address, app.username, app.password, app.errorCallback)
-    csv = CSVReader(csv_path, app.errorCallback)
-
-    # Completely pointless test....
-    assert(isinstance(app, App))
-
-    # Verify that formatCell works as intended
-    assert(app.formatCell(" Words go here ") == "Words go here")
-
-    assert(app.formatCell(float('nan')) == "Not Listed")
-    assert(app.formatCell(None) == "Not Listed")
-
-    # Test out populating device types. Verify no type confusion occurs, etc.
-    device_types = app.populateDeviceTypes(csv)
-
-    app.id_list = device_types
-
-    # Test out populating devices. Verify no type confusion occurs, etc.
-    devices = app.populateDevices(csv)
-    assert(isinstance(devices, list))
-    for i in devices:
-        assert(isinstance(i, Device))
-
-    print "Tests Succeeded!"
-
-
-
 if __name__ == "__main__":
     # Argument list
     # <param name="verbose" type="boolean" default="False">
@@ -324,7 +291,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.test == True:
-        tests()
+        import Tests
+        # Suppress logging
+        coloredlogs.set_level('CRITICAL')
+        logger = logging.getLogger('__main__')
+        logger.propagate = False
+        Tests.tests(args.address, args.username, args.password, args.configuration)
         exit(0)
 
     app = App(filename=args.filename, 

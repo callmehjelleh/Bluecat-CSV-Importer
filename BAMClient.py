@@ -16,9 +16,9 @@ suds_log = logging.getLogger('suds').setLevel(logging.CRITICAL)
 class BAMClient:
 
     # Default configuration information
-    default_address = "10.255.255.50"
-    default_user = "eriktest"
-    default_password = "C0k3z3r0!"
+    default_address = "127.0.0.1"
+    default_username = "admin"
+    default_password = "admin"
     default_configuration = "Test"
 
     # <summary>
@@ -135,6 +135,12 @@ class BAMClient:
         return self.client.getEntities(0, "DeviceType", 0, 5000)
 
     # <summary>
+    # Gets a list of device subtypes on the BAM service
+    # </summary>
+    def getDeviceSubtypes(self):
+        return self.client.getEntities(0, "DeviceSubtype", 0, 5000)
+
+    # <summary>
     # Adds a new Device entity to the BAM service based on a local Device instance
     # </summary>
     # <param name="device" type="Device">
@@ -152,7 +158,7 @@ class BAMClient:
                 self.addNetwork(address.IP())
             
 
-            self.client.addDevice(self.configuration_id,
+            return self.client.addDevice(self.configuration_id,
                                   device.name(), 
                                   device.device_type().id(), 
                                   device.device_subtype().id(), 
@@ -238,12 +244,12 @@ class BAMClient:
     #def addTag(self, name):
 
     #def tagBlock(self, block_id):
+
+def tests():
+    print "+-----------------------------+"
+    print "|       BAMClient Tests       |"
+    print "+-----------------------------+"
+
 # TODO: replace with unit testing
 if __name__ == "__main__":
-    def callback(msg, fail):
-        print msg
-
-    csv = CSVReader('test.csv', callback)
-    bam = BAM(BAM.default_address, BAM.default_user, BAM.default_password)
-
-    bam._BAM__merge_IP(csv)
+    print "This module cannot be run as a standalone program. Please run __main__.py"
